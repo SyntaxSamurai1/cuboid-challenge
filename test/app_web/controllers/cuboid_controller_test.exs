@@ -35,7 +35,7 @@ defmodule AppWeb.CuboidControllerTest do
             bag_id: bag.id
           })
 
-        cuboid |> Repo.preload(:bag)
+        cuboid |> Map.put(:volume, :math.pow(i, 3)) |> Repo.preload(:bag)
       end)
 
     %{bag: bag, cuboids: cuboids}
@@ -147,13 +147,19 @@ defmodule AppWeb.CuboidControllerTest do
 
   describe "update cuboid" do
     test "renders cuboid when data is valid", %{conn: conn} do
+      %{bag: bag, cuboids: cuboids} = fixtures()
+
       cuboid_to_update = %{
         depth: 2,
         height: 2,
-        width: 2
+        width: 2,
+        id: hd(cuboids).id
       }
 
-      cuboid_updated = json_response(conn, 200)
+      cuboid_updated =
+        patch(conn, Routes.cuboid_path(conn, :update, hd(cuboids).id), cuboid_to_update)
+        |> json_response(200)
+
       assert cuboid_to_update.id == cuboid_updated["id"]
       assert cuboid_to_update.height == cuboid_updated["height"]
       assert cuboid_to_update.width == cuboid_updated["width"]
@@ -161,11 +167,15 @@ defmodule AppWeb.CuboidControllerTest do
     end
 
     test "renders cuboid when data is not valid", %{conn: conn} do
+      %{bag: bag, cuboids: cuboids} = fixtures()
+
       cuboid_to_update = %{
         depth: 10,
         height: 10,
         width: 10
       }
+
+      conn = patch(conn, Routes.cuboid_path(conn, :update, hd(cuboids).id), cuboid_to_update)
 
       assert response(conn, 422) == "{\"errors\":{\"volume\":[\"Insufficient space in bag\"]}}"
     end
@@ -173,10 +183,14 @@ defmodule AppWeb.CuboidControllerTest do
 
   describe "delete cuboid" do
     test "renders cuboid when is valid", %{conn: conn} do
-      json_response(conn, 200)
+      %{cuboids: cuboids} = fixtures()
+      conn = delete(conn, Routes.cuboid_path(conn, :delete, hd(cuboids).id))
+      assert json_response(conn, 200)
     end
 
     test "renders cuboid when is invalid", %{conn: conn} do
+      %{cuboids: cuboids} = fixtures()
+      conn = delete(conn, Routes.cuboid_path(conn, :delete, "100"))
       json_response(conn, 404)
     end
   end

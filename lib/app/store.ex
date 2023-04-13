@@ -18,7 +18,7 @@ defmodule App.Store do
 
   """
   def list_cuboids do
-    Repo.all(Cuboid) |> Repo.preload(:bag)
+    Cuboid |> get_cuboid_volume() |> Repo.all() |> Repo.preload(:bag)
   end
 
   @doc """
@@ -32,7 +32,15 @@ defmodule App.Store do
       %Cuboid{}
 
   """
-  def get_cuboid(id), do: Repo.get(Cuboid, id) |> Repo.preload(:bag)
+  def get_cuboid(id),
+    do:
+      Cuboid
+      |> get_cuboid_volume()
+      |> Repo.get(id)
+      |> Repo.preload(:bag)
+
+  def get_cuboid_volume(query \\ Cuboid),
+    do: select_merge(query, [c], %{volume: c.depth * c.height * c.width})
 
   @doc """
   Creates a cuboid.
@@ -63,8 +71,35 @@ defmodule App.Store do
       [%Bag{}, ...]
 
   """
+
+  def delete_cuboid(cuboid) do
+    Repo.get(Cuboid, cuboid)
+    |> case do
+      nil -> {:error, "No cuboid found"}
+      cuboid -> Repo.delete(cuboid)
+    end
+  end
+
+  # def delete_cuboid(cuboid), do: Repo.delete(cuboid)
+  #   Repo.get_by(Cuboid, cuboid.id)
+  #   |> case do
+  #     nil -> {:error, "No cuboid"}
+  #     cuboid -> Repo.delete(cuboid)
+  #   end
+  # end
+
+  def update_cuboid(%Cuboid{} = cuboid, attrs) do
+    cuboid
+    |> Cuboid.changeset(attrs)
+    |> Repo.update()
+  end
+
   def list_bags do
-    Repo.all(Bag) |> Repo.preload(:cuboids)
+    Repo.all(Bag)
+    |> Repo.preload(:cuboids)
+    |> Enum.map(fn bag ->
+      set_bag_volumes(bag)
+    end)
   end
 
   @doc """
@@ -78,7 +113,16 @@ defmodule App.Store do
       %Bag{}
 
   """
-  def get_bag(id), do: Repo.get(Bag, id) |> Repo.preload(:cuboids)
+  def get_bag(id) do
+    bag = Repo.get(Bag, id) |> Repo.preload(:cuboids)
+    set_bag_volumes(bag)
+  end
+
+  defp set_bag_volumes(bag) do
+    payload_volume = bag.cuboids |> Enum.map(&(&1.depth * &1.height * &1.width)) |> Enum.sum()
+
+    Map.merge(bag, %{payloadVolume: payload_volume, availableVolume: bag.volume - payload_volume})
+  end
 
   @doc """
   Creates a bag.

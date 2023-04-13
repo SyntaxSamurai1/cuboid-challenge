@@ -34,7 +34,7 @@ defmodule App.StoreTest do
               bag_id: bag.id
             })
 
-          cuboid |> Repo.preload(:bag)
+          cuboid |> Map.put(:volume, :math.pow(i, 3)) |> Repo.preload(:bag)
         end)
 
       %{bag: bag, cuboids: cuboids}

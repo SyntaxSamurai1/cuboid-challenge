@@ -19,7 +19,19 @@ defmodule App.Store.Bag do
   @doc false
   def changeset(bag, attrs) do
     bag
-    |> cast(attrs, [:volume, :title])
+    |> cast(attrs, [:volume, :title, :payloadVolume, :availableVolume])
     |> validate_required([:volume, :title])
   end
+
+  # def assoc_changeset(bag, attrs) do
+  #   IO.inspect(label: "here")
+  #   bag
+  #   |> cast(attrs, [:bag_id, :volume, :title, :payloadVolume, :availableVolume])
+  #   |> set_payload()
+  # end
+
+  # def set_payload(%Ecto.Changeset{changes: %{payloadVolume: pv, volume: v}} = changeset) when pv > v do
+  #   IO.inspect(changeset, label: "changeset!!!!")
+  #   Ecto.Changeset.add_error(changeset, :payloadVolume, "Insufficient space in bag")
+  # end
 end
